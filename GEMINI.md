@@ -12,9 +12,31 @@ The system generates summary reports documenting workflows, configurations, deci
 
 1. User creates and edits `starter.md` to define their project
 2. User runs `/init` with their AI client (Claude Code or Gemini CLI)
-3. AI reads `starter.md` and creates `STARTER.md` (frozen reference copy)
-4. AI uses `STARTER.md` to create the project structure and required files
-5. User no longer edits `starter.md` after initialization
+3. AI reads `starter.md` and executes the following steps:
+
+**Step 1: Create Directory Structure**
+```bash
+mkdir -p agent-files/ai agent-files/templates reports
+```
+
+**Step 2: Create Frozen Reference**
+```bash
+cp agent-files/starter.md STARTER.md
+```
+
+**Step 3: Create AI Summary Files**
+Create `agent-files/ai/summary-c.md`, `summary-g.md`, and `summary.md` with initial empty structure (see Template Formats below).
+
+**Step 4: Create AI Context Files**
+Create `agent-files/ai/claude.md` and `agent-files/ai/gemini.md` with full specifications (see CLAUDE.md Specification and GEMINI.md Specification sections below).
+
+**Step 5: Create Templates**
+Create `agent-files/templates/summary-template.md`, `report-template.md`, and `session-template.md` (see Template Formats below).
+
+**Step 6: Create Guide Files (Optional)**
+Create `QUICK-REFERENCE.md` and `SESSION-DEMO.md` in project root for user reference.
+
+4. User no longer edits `starter.md` after initialization
 
 ---
 
@@ -34,22 +56,23 @@ Ordered by implementation sequence:
 Single-project structure with AI-managed files organized in subfolders:
 
 ```
-agent-files/
-├── starter.md              # User-editable (only before /init)
+/
 ├── STARTER.md              # Frozen reference (created by /init)
-├── ai/                     # AI-managed files (manually committed to git)
-│   ├── summary-c.md        # Claude's session summaries
-│   ├── summary-g.md        # Gemini's session summaries
-│   ├── summary.md          # Unified summary (read at session start)
-│   ├── claude.md           # Claude-specific context
-│   └── gemini.md           # Gemini-specific context
-├── reports/                # Generated session reports
+├── reports/                # Generated session reports (project root)
 │   ├── YYYY-MM-DD-report.md
 │   └── YYYY-MM-DD-report.md
-└── templates/              # Blank templates (populated as needed)
-    ├── summary-template.md
-    ├── project-template.md
-    └── session-template.md
+└── agent-files/
+    ├── starter.md          # User-editable (only before /init)
+    ├── ai/                 # AI-managed files (manually committed to git)
+    │   ├── summary-c.md    # Claude's session summaries
+    │   ├── summary-g.md    # Gemini's session summaries
+    │   ├── summary.md      # Unified summary (read at session start)
+    │   ├── claude.md       # Claude-specific context
+    │   └── gemini.md       # Gemini-specific context
+    └── templates/          # Blank templates (populated as needed)
+        ├── summary-template.md
+        ├── project-template.md
+        └── session-template.md
 ```
 
 ### File Relationships
@@ -69,13 +92,18 @@ agent-files/
 **Workflow instruction:** When starting, user tells AI to begin session.
 
 The AI will:
-1. Read `ai/summary.md` to load context from previous sessions
-2. Announce what it found:
+1. **Pull from git** - Run `git pull` to get latest changes from remote
+2. **Check for external changes** - If git pull brought updates:
+   - Review what changed using `git log` and `git diff`
+   - Add external changes to summary context
+   - Announce what was updated externally (e.g., "Gemini made changes to X")
+3. Read `ai/summary.md` to load context from previous sessions
+4. Announce what it found:
    - Current status of the project
    - Open blockers that need attention
-   - Recent changes from last session
+   - Recent changes from last session (including external changes)
    - Suggested next steps
-3. Begin monitoring all activity for the session report
+5. Begin monitoring all activity for the session report
 
 ### During a Session
 
@@ -94,15 +122,53 @@ The AI will propose documentation items for user approval before finalizing.
 **Workflow instruction:** When ending, user tells AI to complete session documentation.
 
 The AI will:
-1. Propose and generate (with user approval) a dated report in `reports/YYYY-MM-DD-report.md` containing:
-   - **Highlights** - Key accomplishments from the session
-   - **Configurations** - Settings, configs, or environment changes made (include config file contents)
-   - **Commands Used** - Important commands executed with context
-   - **Code Snippets** - Relevant code blocks created or modified
-   - **Blockers** - New issues that need resolution
-   - **Allowers** - Solutions that successfully unblocked work
-2. Update `ai/summary-c.md` (Claude) or `ai/summary-g.md` (Gemini) with session details
-3. **Always merge** both AI summaries into unified `ai/summary.md` for next session start (even if only one AI was active this session)
+1. **Ask user for report format preference:**
+   - **Every command**: All commands in sequence (copy-paste script style)
+   - **Key actions**: Important steps with context (skip trivial file operations)
+   - **Recipe style**: Prerequisites + high-level steps + key commands only
+
+2. **Generate how-to report** in `reports/YYYY-MM-DD-report.md` with format:
+   - **Title**: How to [Task Name] - YYYY-MM-DD
+   - **Objective**: What this guide teaches
+   - **Overview**: Brief summary of what was accomplished
+   - **How to Replicate**: Step-by-step instructions (detail level based on user choice)
+     - Prerequisites (tools, configs, starting state)
+     - Steps with commands and context
+     - Key configurations or code created
+   - **Blockers**: New issues that need resolution
+   - **Allowers**: Solutions that successfully unblocked work
+   - **Results**: What you'll have after following the guide
+
+3. Update `ai/summary-c.md` (Claude) or `ai/summary-g.md` (Gemini) with session details
+
+4. **Always merge** both AI summaries into unified `ai/summary.md` for next session start (even if only one AI was active this session)
+
+5. **Commit and push to git** - Backup session work to remote:
+   - Stage all changes with `git add -A`
+   - Commit with descriptive message including what was accomplished
+   - Push to remote with `git push origin master`
+
+### Merge Summaries (Manual Sync)
+
+**You say:** "Merge summaries" or "Sync summaries" or "Update summary.md"
+
+**AI will follow:** `agent-files/templates/summary-merge-template.md`
+
+**Purpose:** Manually sync summaries without creating report or pushing to git.
+
+**Use cases:**
+- Mid-session sync between Claude and Gemini
+- After external changes detected
+- Before switching AI clients
+- Quick sync without full session end
+
+**Default workflow:**
+1. Read both `summary-c.md` and `summary-g.md`
+2. Merge into unified `summary.md` (current status, logs, blockers, allowers)
+3. Display confirmation with counts
+4. **Does NOT** create report, commit, or push
+
+**Customize:** Edit `agent-files/templates/summary-merge-template.md` to change merge logic.
 
 ### Cross-AI Continuity
 
