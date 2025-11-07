@@ -4,18 +4,38 @@ This template defines the workflow when a user starts a new session.
 
 ## Trigger
 
-User says: "Let's start a session" or "Start a session" or "Begin session"
+User says: "Record session" or "Record reports" or similar recording-related phrases
+
+**Examples:**
+- "Record session"
+- "Record reports"
+- "Start recording"
+- "Begin recording session"
 
 ## Workflow
 
-### Step 1: Git Pull
-Pull latest changes from remote repository to sync with external updates (e.g., changes from other AI clients).
+### Step 1: Ask About Git Pull
+Ask user if they want to pull latest changes from remote repository:
+
+```
+Would you like to pull latest changes from git?
+
+1. **No** - Skip git pull
+2. **Yes** - Pull from remote (git pull)
+
+Choose: [1/2]
+```
+
+Wait for user's choice. Default: No (option 1).
+
+### Step 2: Git Pull (If User Chose Yes)
+If user chose "Yes" in Step 1:
 
 ```bash
 git pull
 ```
 
-### Step 2: Check for External Changes
+**Check for updates:**
 If git pull brought updates:
 1. Review what changed:
 ```bash

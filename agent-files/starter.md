@@ -84,6 +84,8 @@ Single-project structure with AI-managed files organized in subfolders:
 ```
 /
 ├── STARTER.md                      # Frozen reference (created by /init)
+├── CLAUDE.md                       # Claude Code instructions (source of truth)
+├── GEMINI.md                       # Gemini instructions (auto-generated from CLAUDE.md)
 ├── index.md                        # Project index (Claude Code creates/updates)
 ├── reports/                        # Session reports (Claude Code creates)
 │   ├── YYYY-MM-DD-HH-MM-report.md  # Timestamped (multiple per day)
@@ -112,11 +114,31 @@ Single-project structure with AI-managed files organized in subfolders:
 
 ### File Relationships
 
-- `claude.md` ↔ `gemini.md` - Synced project instructions
+- `CLAUDE.md` → `GEMINI.md` - GEMINI.md is auto-generated from CLAUDE.md (single source of truth)
+- `claude.md` ↔ `gemini.md` - Synced project instructions in agent-files/ai/
 - `summary-c.md` - Claude's working memory (updated at session end)
 - `summary-g.md` - Gemini's working memory (updated at session end)
 - `summary.md` - Unified context (read at session start, updated at session end)
 - `reports/` - Session reports with highlights, configurations, and commands used
+
+### GEMINI.md Generation
+
+**Important:** GEMINI.md is auto-generated from CLAUDE.md to avoid duplicate maintenance.
+
+**How it works:**
+1. **CLAUDE.md** is the source of truth for AI instructions
+2. After updating CLAUDE.md, run: `cp CLAUDE.md GEMINI.md`
+3. Update the header in GEMINI.md:
+   - Change `# CLAUDE.md` to `# GEMINI.md`
+   - Change "Claude Code" to "Gemini"
+   - Add note: "This file is auto-generated from CLAUDE.md"
+4. GEMINI.md is in .gitignore and should not be committed
+
+**Why this approach:**
+- Single source of truth prevents inconsistencies
+- Both AIs get identical instructions (only header differs)
+- Reduces maintenance burden
+- Ensures documentation stays in sync
 
 ---
 
@@ -124,7 +146,7 @@ Single-project structure with AI-managed files organized in subfolders:
 
 ### Starting a Session
 
-**Workflow instruction:** When starting, user tells AI to begin session.
+**Workflow instruction:** When user says "Record session", "Record reports", or similar recording phrases.
 
 The AI will:
 1. **Pull from git** - Run `git pull` to get latest changes from remote
@@ -154,15 +176,26 @@ The AI will propose documentation items for user approval before finalizing.
 
 ### Ending a Session
 
-**Workflow instruction:** When ending, user tells AI to complete session documentation.
+**Workflow instruction:** When user says "Stop report", "Stop session recorder", "Stop report recorder", or similar stopping phrases.
 
 The AI will:
-1. **Ask user for report format preference:**
+1. **Ask if user wants to generate a report** (optional)
+
+2. **Ask user for report type** (if generating report):
+   - **How-To Guide**: Step-by-step reproduction with sarcastic humor
+   - **Summary Report**: High-level overview (executive style)
+   - **Technical Documentation**: Detailed technical reference
+   - **Troubleshooting Guide**: Problem → Solution format
+   - **Decision Record**: Architecture Decision Record (ADR) style
+   - **Quick Reference**: Command cheat sheet
+   - **Changelog**: Release notes style
+
+3. **Ask for detail level** (if How-To Guide chosen):
    - **Every command**: All commands in sequence (copy-paste script style)
    - **Key actions**: Important steps with context (skip trivial file operations)
    - **Recipe style**: Prerequisites + high-level steps + key commands only
 
-2. **Generate how-to report** in `reports/YYYY-MM-DD-HH-MM-report.md` (timestamped) with format:
+4. **Generate report** in `reports/YYYY-MM-DD-HH-MM-report.md` (timestamped) with format:
    - **Title**: How to [Task Name] - YYYY-MM-DD
    - **Objective**: What this guide teaches
    - **Overview**: Brief summary of what was accomplished
@@ -174,11 +207,15 @@ The AI will:
    - **Allowers**: Solutions that successfully unblocked work
    - **Results**: What you'll have after following the guide
 
-3. Update `ai/summary-c.md` (Claude) or `ai/summary-g.md` (Gemini) with session details
+5. Update `ai/summary-c.md` (Claude) or `ai/summary-g.md` (Gemini) with session details
 
-4. **Always merge** both AI summaries into unified `ai/summary.md` for next session start (even if only one AI was active this session)
+6. **Always merge** both AI summaries into unified `ai/summary.md` for next session start (even if only one AI was active this session)
 
-5. **Commit and push to git** - Backup session work to remote (Claude Code only):
+7. **Ask about git commit and push** (optional):
+   - User chooses whether to commit and push to remote
+   - Default: No
+
+8. **Commit and push to git** (if user chose Yes) - Backup session work to remote (Claude Code only):
    - Stage all changes with `git add -A`
    - Commit with descriptive message including what was accomplished
    - Push to remote with `git push origin master`

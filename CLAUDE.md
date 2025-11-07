@@ -1,8 +1,6 @@
-# GEMINI.md
+# CLAUDE.md
 
-This file provides guidance to Gemini when working with code in this repository.
-
-**Note:** This file is auto-generated from CLAUDE.md. Do not edit directly - all changes should be made to CLAUDE.md.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## What This System Does
 
